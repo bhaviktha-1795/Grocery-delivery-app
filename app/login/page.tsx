@@ -38,6 +38,7 @@ export default function LoginPage() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
+      // First check demo users
       const demoUser = DEMO_USERS.find((u) => u.email === email && u.password === password)
 
       if (demoUser) {
@@ -72,8 +73,20 @@ export default function LoginPage() {
         }
         setUser(user)
         router.push('/app')
+        return
+      }
+
+      // Then check registered users
+      const registeredUsers = JSON.parse(localStorage.getItem('grocergo_users') || '[]')
+      const registeredUser = registeredUsers.find(
+        (u: any) => u.email === email && u.password === password
+      )
+
+      if (registeredUser) {
+        setUser(registeredUser)
+        router.push('/app')
       } else {
-        setError('Invalid email or password. Try user@example.com / password123')
+        setError('Invalid email or password. Try user@example.com / password123 or create an account')
       }
     } catch (err) {
       setError('Login failed. Please try again.')

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/header'
+import { useApp } from '@/lib/context'
 import { Eye, EyeOff } from 'lucide-react'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const { isAuthenticated } = useApp()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,6 +20,12 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/app')
+    }
+  }, [isAuthenticated, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -68,23 +76,48 @@ export default function SignUpPage() {
     if (!validateForm()) return
 
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
 
-    // Store mock user data in sessionStorage
-    sessionStorage.setItem(
-      'currentUser',
-      JSON.stringify({
-        id: '1',
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // Create new user object
+      const newUser = {
+        id: Date.now().toString(),
         name: formData.name,
         email: formData.email,
+        password: formData.password, // In production, this would be hashed
         phone: '',
+        avatar: '',
         addresses: [],
-      })
-    )
+        savedPaymentMethods: [],
+        loyaltyPoints: 0,
+        referralCode: `REF${Date.now()}`,
+        createdAt: new Date(),
+      }
 
-    router.push('/account')
+      // Get existing users from localStorage
+      const existingUsers = JSON.parse(localStorage.getItem('grocergo_users') || '[]')
+      
+      // Check if email already exists
+      if (existingUsers.some((user: any) => user.email === formData.email)) {
+        setErrors({ email: 'This email is already registered' })
+        setIsLoading(false)
+        return
+      }
+
+      // Add new user to the list
+      existingUsers.push(newUser)
+      localStorage.setItem('grocergo_users', JSON.stringify(existingUsers))
+
+      // Automatically log in the user by storing in localStorage
+      localStorage.setItem('grocergo_user', JSON.stringify(newUser))
+
+      router.push('/app')
+    } catch (err) {
+      setErrors({ email: 'Failed to create account. Please try again.' })
+      setIsLoading(false)
+    }
   }
 
   return (
