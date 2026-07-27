@@ -1,7 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { User, CartItem, Product } from './types'
+import { User, CartItem, Product, Coupon } from './types'
+import { mockStores } from './mock-data'
 
 interface AppContextType {
   user: User | null
@@ -13,6 +14,11 @@ interface AppContextType {
   clearCart: () => void
   setUser: (user: User | null) => void
   logout: () => void
+  appliedCoupon: Coupon | null
+  couponDiscount: number
+  couponError: string
+  applyCoupon: (code: string) => boolean
+  removeCoupon: () => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -29,8 +35,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return []
     }
   })
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null)
+  const [couponDiscount, setCouponDiscount] = useState(0)
+  const [couponError, setCouponError] = useState('')
 
-  // Initialize user from localStorage on mount
+  // Initialize user and coupon from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -39,8 +48,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(saved)
           setUser(userData)
         }
+        const savedCoupon = localStorage.getItem('grocergo_coupon')
+        if (savedCoupon) {
+          const couponData = JSON.parse(savedCoupon)
+          setAppliedCoupon(couponData)
+        }
       } catch {
-        console.error('Failed to load user from localStorage')
+        console.error('Failed to load from localStorage')
       }
       setIsHydrated(true)
     }
@@ -63,6 +77,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('grocergo_cart', JSON.stringify(cart))
     }
   }, [cart])
+
+  // Persist coupon to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isHydrated) {
+      if (appliedCoupon) {
+        localStorage.setItem('grocergo_coupon', JSON.stringify(appliedCoupon))
+      } else {
+        localStorage.removeItem('grocergo_coupon')
+      }
+    }
+  }, [appliedCoupon, isHydrated])
 
   const addToCart = (product: Product, quantity: number) => {
     setCart((prevCart) => {
@@ -99,6 +124,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearCart()
   }
 
+  const applyCoupon = (code: string): boolean => {
+    setCouponError('')
+    
+    // Find coupon from all stores
+    let foundCoupon: Coupon | null = null
+    for (const store of mockStores) {
+      const coupon = store.coupons.find((c) => c.code.toUpperCase() === code.toUpperCase())
+      if (coupon) {
+        foundCoupon = coupon
+        break
+      }
+    }
+
+    if (!foundCoupon) {
+      setCouponError('Invalid coupon code')
+      return false
+    }
+
+    // Check if coupon is active
+    if (!foundCoupon.isActive) {
+      setCouponError('This coupon is not active')
+      return false
+    }
+
+    // Check if coupon has expired
+    if (new Date() > new Date(foundCoupon.expiryDate)) {
+      setCouponError('This coupon has expired')
+      return false
+    }
+
+    // Check if max uses reached
+    if (foundCoupon.usedCount >= foundCoupon.maxUses) {
+      setCouponError('This coupon has reached maximum uses')
+      return false
+    }
+
+    // Calculate subtotal
+    const subtotal = cart.reduce((total, item) => total + item.product.price * item.quantity, 0)
+
+    // Check minimum order requirement
+    if (subtotal < foundCoupon.minOrder) {
+      setCouponError(`Minimum order amount is $${foundCoupon.minOrder}`)
+      return false
+    }
+
+    // Calculate discount
+    let discount = 0
+    if (foundCoupon.discountType === 'percentage') {
+      discount = (subtotal * foundCoupon.discount) / 100
+    } else {
+      discount = foundCoupon.discount
+    }
+
+    setAppliedCoupon(foundCoupon)
+    setCouponDiscount(discount)
+    return true
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponDiscount(0)
+    setCouponError('')
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -111,6 +200,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearCart,
         setUser,
         logout,
+        appliedCoupon,
+        couponDiscount,
+        couponError,
+        applyCoupon,
+        removeCoupon,
       }}
     >
       {children}

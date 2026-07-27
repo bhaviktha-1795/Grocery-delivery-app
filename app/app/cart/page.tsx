@@ -1,15 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AppLayout } from '@/components/app-layout'
 import { useApp } from '@/lib/context'
-import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingCart, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function CartPage() {
   const router = useRouter()
-  const { cart, removeFromCart, updateCartItem, isAuthenticated } = useApp()
+  const { cart, removeFromCart, updateCartItem, isAuthenticated, applyCoupon, appliedCoupon, couponDiscount, couponError, removeCoupon } = useApp()
+  const [couponCode, setCouponCode] = useState('')
+  const [couponInputError, setCouponInputError] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -18,13 +20,29 @@ export default function CartPage() {
   }, [isAuthenticated, router])
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-  const discount = cart.reduce((sum, item) => {
+  const productDiscount = cart.reduce((sum, item) => {
     const discount = item.product.originalPrice ? item.product.originalPrice - item.product.price : 0
     return sum + discount * item.quantity
   }, 0)
-  const tax = subtotal * 0.08
+  const afterProductDiscount = subtotal - productDiscount
+  const afterCouponDiscount = Math.max(0, afterProductDiscount - couponDiscount)
+  const tax = afterCouponDiscount * 0.08
   const deliveryFee = 2.99
-  const total = subtotal + tax + deliveryFee
+  const total = afterCouponDiscount + tax + deliveryFee
+
+  const handleApplyCoupon = () => {
+    setCouponInputError('')
+    if (!couponCode.trim()) {
+      setCouponInputError('Please enter a coupon code')
+      return
+    }
+    const success = applyCoupon(couponCode)
+    if (!success) {
+      setCouponInputError(couponError)
+    } else {
+      setCouponCode('')
+    }
+  }
 
   if (cart.length === 0) {
     return (
@@ -123,10 +141,16 @@ export default function CartPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                {discount > 0 && (
+                {productDiscount > 0 && (
                   <div className="flex justify-between text-sm text-accent">
-                    <span className="text-muted-foreground">Discount</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Product Discount</span>
+                    <span>-${productDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {appliedCoupon && couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-accent">
+                    <span className="text-muted-foreground">Coupon ({appliedCoupon.code})</span>
+                    <span>-${couponDiscount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
@@ -145,17 +169,49 @@ export default function CartPage() {
                 <span className="text-2xl font-bold">${total.toFixed(2)}</span>
               </div>
 
-              {/* Promo Code */}
-              <div className="space-y-2 pt-4 border-t border-border">
-                <input
-                  type="text"
-                  placeholder="Apply coupon code"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                />
-                <button className="w-full py-2 border border-border rounded-lg text-sm font-semibold hover:bg-secondary transition-colors">
-                  Apply Coupon
-                </button>
-              </div>
+              {/* Applied Coupon Display */}
+              {appliedCoupon && (
+                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Applied Coupon</p>
+                      <p className="font-mono font-bold text-foreground">{appliedCoupon.code}</p>
+                    </div>
+                    <button
+                      onClick={removeCoupon}
+                      className="text-destructive hover:bg-destructive/10 rounded p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-green-700 dark:text-green-300">Saving you ${couponDiscount.toFixed(2)}</p>
+                </div>
+              )}
+
+              {/* Promo Code Input */}
+              {!appliedCoupon && (
+                <div className="space-y-2 pt-4 border-t border-border">
+                  <input
+                    type="text"
+                    placeholder="Apply coupon code"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase())
+                      setCouponInputError('')
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                  />
+                  {couponInputError && (
+                    <p className="text-xs text-destructive">{couponInputError}</p>
+                  )}
+                  <button
+                    onClick={handleApplyCoupon}
+                    className="w-full py-2 border border-border rounded-lg text-sm font-semibold hover:bg-secondary transition-colors"
+                  >
+                    Apply Coupon
+                  </button>
+                </div>
+              )}
 
               {/* Checkout Button */}
               <Link

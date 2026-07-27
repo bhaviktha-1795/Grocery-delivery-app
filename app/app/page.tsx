@@ -5,14 +5,15 @@ import Link from 'next/link'
 import { AppLayout } from '@/components/app-layout'
 import { useApp } from '@/lib/context'
 import { mockStores, mockProducts, categories } from '@/lib/mock-data'
-import { MapPin, Star, Clock, Tag, TrendingUp } from 'lucide-react'
+import { MapPin, Star, Clock, Tag, TrendingUp, Percent, DollarSign } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AppHome() {
   const router = useRouter()
-  const { user, isAuthenticated } = useApp()
+  const { user, isAuthenticated, applyCoupon } = useApp()
   const [selectedCategory, setSelectedCategory] = useState('fruits')
   const [filteredProducts, setFilteredProducts] = useState(mockProducts)
+  const [showCouponSuccess, setShowCouponSuccess] = useState('')
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -40,17 +41,60 @@ export default function AppHome() {
           <span className="font-semibold">{user?.addresses[0]?.city || 'New York'}</span>
         </div>
 
-        {/* Promotional Banner */}
-        <div className="bg-gradient-to-r from-primary/20 to-accent/20 border border-primary/30 rounded-lg p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold mb-2">Special Offers</h2>
-              <p className="text-sm text-muted-foreground mb-3">Get 20% off on fresh produce with FRESH20</p>
-              <Link href="/app/coupons" className="text-sm font-semibold text-primary hover:underline">
-                View all offers →
-              </Link>
+        {/* Promotional Banner - Special Offers */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Special Offers</h2>
+            <Link href="/app/coupons" className="text-sm font-semibold text-primary hover:underline">
+              View all →
+            </Link>
+          </div>
+
+          {showCouponSuccess && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-700 font-medium">{showCouponSuccess}</p>
             </div>
-            <Tag className="w-8 h-8 text-accent" />
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {mockStores[0]?.coupons.map((coupon) => (
+              <div
+                key={coupon.id}
+                className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30 rounded-lg p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {coupon.discountType === 'percentage' ? (
+                        <Percent className="w-5 h-5 text-accent" />
+                      ) : (
+                        <DollarSign className="w-5 h-5 text-accent" />
+                      )}
+                      <h3 className="font-bold text-lg">
+                        {coupon.discountType === 'percentage' ? `${coupon.discount}%` : `$${coupon.discount}`} Off
+                      </h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{coupon.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Code: <span className="font-mono font-bold text-foreground">{coupon.code}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">Min order: ${coupon.minOrder}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const success = applyCoupon(coupon.code)
+                      if (success) {
+                        setShowCouponSuccess(`Coupon ${coupon.code} applied! Use it at checkout.`)
+                        setTimeout(() => setShowCouponSuccess(''), 4000)
+                      }
+                    }}
+                    className="whitespace-nowrap px-3 py-2 bg-primary text-primary-foreground rounded text-xs font-semibold hover:opacity-90 transition-opacity"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
