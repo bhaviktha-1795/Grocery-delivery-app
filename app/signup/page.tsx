@@ -9,7 +9,7 @@ import { Eye, EyeOff } from 'lucide-react'
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { isAuthenticated } = useApp()
+  const { isAuthenticated, setUser } = useApp()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -23,7 +23,10 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/app')
+      const timer = setTimeout(() => {
+        router.push('/app')
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [isAuthenticated, router])
 
@@ -110,9 +113,11 @@ export default function SignUpPage() {
       existingUsers.push(newUser)
       localStorage.setItem('grocergo_users', JSON.stringify(existingUsers))
 
-      // Automatically log in the user by storing in localStorage
+      // Automatically log in the user by storing in localStorage and context
       localStorage.setItem('grocergo_user', JSON.stringify(newUser))
+      setUser(newUser)
 
+      // Navigate to app home page
       router.push('/app')
     } catch (err) {
       setErrors({ email: 'Failed to create account. Please try again.' })

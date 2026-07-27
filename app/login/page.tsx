@@ -22,7 +22,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/app')
+      const timer = setTimeout(() => {
+        router.push('/app')
+      }, 100)
+      return () => clearTimeout(timer)
     }
   }, [isAuthenticated, router])
   const [email, setEmail] = useState('')
