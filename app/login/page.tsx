@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useApp } from '@/lib/context'
@@ -18,7 +18,13 @@ const DEMO_USERS: DemoUser[] = [
 
 export default function LoginPage() {
   const router = useRouter()
-  const { setUser } = useApp()
+  const { setUser, isAuthenticated } = useApp()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/app')
+    }
+  }, [isAuthenticated, router])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')

@@ -1,13 +1,23 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { AppLayout } from '@/components/app-layout'
 import { mockOrders } from '@/lib/mock-data'
 import { Package, Clock, MapPin, Star, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useApp } from '@/lib/context'
 
 export default function OrdersPage() {
+  const router = useRouter()
+  const { isAuthenticated } = useApp()
   const [selectedOrder, setSelectedOrder] = useState(mockOrders[0]?.id)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
 
   const order = mockOrders.find((o) => o.id === selectedOrder)
 

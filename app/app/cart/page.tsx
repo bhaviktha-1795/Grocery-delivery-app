@@ -1,12 +1,21 @@
 'use client'
 
+import { useEffect } from 'react'
 import { AppLayout } from '@/components/app-layout'
 import { useApp } from '@/lib/context'
 import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateCartItem } = useApp()
+  const router = useRouter()
+  const { cart, removeFromCart, updateCartItem, isAuthenticated } = useApp()
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const discount = cart.reduce((sum, item) => {

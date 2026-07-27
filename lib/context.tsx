@@ -19,6 +19,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [isHydrated, setIsHydrated] = useState(false)
   const [cart, setCart] = useState<CartItem[]>(() => {
     if (typeof window === 'undefined') return []
     try {
@@ -29,10 +30,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   })
 
+  // Initialize user from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('grocergo_user')
+        if (saved) {
+          const userData = JSON.parse(saved)
+          setUser(userData)
+        }
+      } catch {
+        console.error('Failed to load user from localStorage')
+      }
+      setIsHydrated(true)
+    }
+  }, [])
+
+  // Persist user to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isHydrated) {
+      if (user) {
+        localStorage.setItem('grocergo_user', JSON.stringify(user))
+      } else {
+        localStorage.removeItem('grocergo_user')
+      }
+    }
+  }, [user, isHydrated])
+
   // Persist cart to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      console.log('[v0] Saving cart to localStorage:', cart)
       localStorage.setItem('grocergo_cart', JSON.stringify(cart))
     }
   }, [cart])

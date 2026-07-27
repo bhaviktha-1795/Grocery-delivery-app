@@ -9,9 +9,16 @@ import { MapPin, Star, Clock, Tag, TrendingUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AppHome() {
-  const { user } = useApp()
+  const router = useRouter()
+  const { user, isAuthenticated } = useApp()
   const [selectedCategory, setSelectedCategory] = useState('fruits')
   const [filteredProducts, setFilteredProducts] = useState(mockProducts)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
 
   useEffect(() => {
     if (selectedCategory === 'all') {

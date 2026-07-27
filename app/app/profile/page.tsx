@@ -1,14 +1,22 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { AppLayout } from '@/components/app-layout'
 import { useApp } from '@/lib/context'
 import { User, MapPin, Gift, Settings, Clock } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
-  const { user } = useApp()
+  const router = useRouter()
+  const { user, isAuthenticated } = useApp()
   const [activeTab, setActiveTab] = useState<'profile' | 'addresses' | 'preferences'>('profile')
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
 
   if (!user) return null
 

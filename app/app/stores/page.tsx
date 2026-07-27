@@ -1,13 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppLayout } from '@/components/app-layout'
 import { mockStores } from '@/lib/mock-data'
 import { MapPin, Star, Clock, DollarSign, Phone, Navigation, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useApp } from '@/lib/context'
 
 export default function StoresPage() {
+  const router = useRouter()
+  const { isAuthenticated } = useApp()
   const [selectedStore, setSelectedStore] = useState<string | null>(mockStores[0].id)
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, router])
   const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'delivery'>('distance')
 
   const sortedStores = [...mockStores].sort((a, b) => {
