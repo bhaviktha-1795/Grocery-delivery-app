@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { AppLayout } from '@/components/app-layout'
+import { StoreMap } from '@/components/store-map'
 import { mockStores } from '@/lib/mock-data'
 import { MapPin, Star, Clock, DollarSign, Phone, Navigation, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -45,30 +46,21 @@ export default function StoresPage() {
         </div>
 
         {/* Map Section */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden h-96 relative flex items-center justify-center bg-muted">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
-              <MapPin className="w-6 h-6 text-primary" />
-            </div>
-            <p className="text-muted-foreground text-sm">Interactive map view</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              In production, this would display an interactive map with store locations, delivery zones, and real-time tracking
-            </p>
-            <div className="pt-2">
-              {selectedStoreData && (
-                <div className="inline-block bg-background/80 backdrop-blur border border-border rounded-lg p-3">
-                  <p className="font-semibold text-sm">{selectedStoreData.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedStoreData.address}</p>
-                  <div className="flex items-center gap-2 text-xs mt-1">
-                    <span className="flex items-center gap-1">
-                      <Navigation className="w-3 h-3" />
-                      {selectedStoreData.distance} km
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="rounded-lg overflow-hidden border border-border">
+          <Suspense 
+            fallback={
+              <div className="h-96 bg-muted flex items-center justify-center">
+                <p className="text-muted-foreground">Loading map...</p>
+              </div>
+            }
+          >
+            <StoreMap 
+              stores={mockStores} 
+              selectedStoreId={selectedStore} 
+              onStoreSelect={setSelectedStore}
+              height="h-96"
+            />
+          </Suspense>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
