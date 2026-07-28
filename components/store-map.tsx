@@ -13,29 +13,49 @@ interface StoreMapProps {
 export function StoreMap({ stores, selectedStoreId, onStoreSelect, height = 'h-96' }: StoreMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
 
+  // Initialize map once on mount
   useEffect(() => {
-    if (!mapContainer.current) return
+    if (!mapContainer.current || mapRef.current) return
 
-    // Dynamic import to ensure it works on client side
     import('leaflet').then((L) => {
-      // Initialize map centered on first store or default location
-      const center = stores[0]?.coordinates || { lat: 40.7128, lng: -74.006 }
-      
-      mapRef.current = L.map(mapContainer.current!).setView([center.lat, center.lng], 13)
+      try {
+        const center = stores[0]?.coordinates || { lat: 40.7128, lng: -74.006 }
+        mapRef.current = L.map(mapContainer.current!).setView([center.lat, center.lng], 13)
 
-      // Add OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(mapRef.current)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(mapRef.current)
+      } catch (error) {
+        console.error('Error initializing map:', error)
+      }
+    })
 
-      // Add store markers
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+        markersRef.current = []
+      }
+    }
+  }, [])
+
+  // Update markers when stores or selection changes
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    import('leaflet').then((L) => {
+      // Clear existing markers
+      markersRef.current.forEach((marker) => marker.remove())
+      markersRef.current = []
+
+      // Add new markers
       stores.forEach((store) => {
         const isSelected = store.id === selectedStoreId
         const markerColor = isSelected ? '#10b981' : '#3b82f6'
-        
-        // Create custom HTML icon
+
         const customIcon = L.divIcon({
           html: `
             <div style="
@@ -52,7 +72,6 @@ export function StoreMap({ stores, selectedStoreId, onStoreSelect, height = 'h-9
               font-size: 16px;
               box-shadow: 0 2px 8px rgba(0,0,0,0.3);
               cursor: pointer;
-              transition: all 0.2s ease;
             ">
               📍
             </div>
@@ -63,7 +82,7 @@ export function StoreMap({ stores, selectedStoreId, onStoreSelect, height = 'h-9
         })
 
         const marker = L.marker([store.coordinates.lat, store.coordinates.lng], { icon: customIcon })
-        
+
         marker.bindPopup(`
           <div style="width: 200px; font-family: system-ui;">
             <strong>${store.name}</strong><br/>
@@ -78,18 +97,12 @@ export function StoreMap({ stores, selectedStoreId, onStoreSelect, height = 'h-9
 
         marker.on('click', () => {
           onStoreSelect(store.id)
-          marker.openPopup()
         })
 
         marker.addTo(mapRef.current)
+        markersRef.current.push(marker)
       })
     })
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-      }
-    }
   }, [stores, selectedStoreId, onStoreSelect])
 
   return (
