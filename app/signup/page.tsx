@@ -46,26 +46,35 @@ export default function SignUpPage() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
+    const name = formData.name.trim()
+    const email = formData.email.trim().toLowerCase()
+    const password = formData.password
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required'
+    if (!name) {
+      newErrors.name = 'Full name is required'
+    } else if (!/^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[ '-][A-Za-zÀ-ÖØ-öø-ÿ]+)+$/.test(name)) {
+      newErrors.name = 'Enter a valid name using letters and spaces only'
+    } else if (name.length < 2 || name.length > 50) {
+      newErrors.name = 'Name must be between 2 and 50 characters'
     }
 
-    if (!formData.email.trim()) {
+    if (!email) {
       newErrors.email = 'Email is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email'
+    } else if (email.length > 254 || !/^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/i.test(email)) {
+      newErrors.email = 'Enter a valid email address'
     }
 
-    if (!formData.password) {
+    if (!password) {
       newErrors.password = 'Password is required'
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
+    } else if (password.length < 8 || password.length > 72) {
+      newErrors.password = 'Password must be between 8 and 72 characters'
+    } else if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      newErrors.password = 'Use uppercase, lowercase, number, and special character'
     }
 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password'
-    } else if (formData.password !== formData.confirmPassword) {
+    } else if (password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match'
     }
 
@@ -87,8 +96,8 @@ export default function SignUpPage() {
       // Create new user object
       const newUser = {
         id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
+        name: formData.name.trim().replace(/\s+/g, ' '),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password, // In production, this would be hashed
         phone: '',
         avatar: '',
@@ -150,6 +159,11 @@ export default function SignUpPage() {
               value={formData.name}
               onChange={handleInputChange}
               placeholder="John Doe"
+              autoComplete="name"
+              required
+              minLength={2}
+              maxLength={50}
+              pattern="[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[ '-][A-Za-zÀ-ÖØ-öø-ÿ]+)+"
               className={`w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
                 errors.name ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-primary'
               }`}
@@ -171,6 +185,9 @@ export default function SignUpPage() {
               value={formData.email}
               onChange={handleInputChange}
               placeholder="john@example.com"
+              autoComplete="email"
+              required
+              maxLength={254}
               className={`w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
                 errors.email ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-primary'
               }`}
@@ -193,6 +210,10 @@ export default function SignUpPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="••••••••"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={72}
                 className={`w-full px-4 py-2 pr-10 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
                   errors.password ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-primary'
                 }`}
@@ -227,6 +248,10 @@ export default function SignUpPage() {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 placeholder="••••••••"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={72}
                 className={`w-full px-4 py-2 pr-10 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 ${
                   errors.confirmPassword ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-primary'
                 }`}
